@@ -1,0 +1,266 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>FastAPI JWT 블로그 데모</title>
+    <style>
+        body { font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; padding: 20px; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: 0 auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #2C3E50; border-bottom: 3px solid #3498DB; padding-bottom: 10px; }
+        h2 { color: #34495E; margin-top: 25px; }
+        input, textarea { padding: 10px; margin: 5px 0 10px 0; width: 95%; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; background-color: #3498DB; color: white; border: none; border-radius: 4px; transition: background-color 0.3s; }
+        button:hover { background-color: #2980B9; }
+        .status { margin-top: 10px; padding: 10px; border: 1px solid #ddd; background-color: #ecf0f1; border-radius: 4px; font-size: 0.9em; white-space: pre-wrap; }
+        .post-list { list-style: none; padding: 0; }
+        .post-item { border-bottom: 1px solid #eee; padding: 15px 0; }
+        .post-title { font-size: 1.2em; color: #3498DB; font-weight: bold; }
+        .post-meta { font-size: 0.85em; color: #7f8c8d; margin-top: 5px; }
+        
+        /* 로그인 패널 */
+        .auth-panel { display: flex; justify-content: space-between; align-items: center; background-color: #f9f9f9; padding: 15px; border-radius: 4px; margin-bottom: 20px; }
+        .auth-status { font-weight: bold; }
+        
+        /* 로그인하지 않았을 때 작성 폼 숨기기 */
+        .post-form-section:not(.logged-in) { opacity: 0.5; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>JWT & Blog 데모</h1>
+        
+        <div class="auth-panel">
+            <span class="auth-status" id="auth_status_display">로그인하세요.</span>
+            <div>
+                <button onclick="showLoginModal()">로그인</button>
+                <button onclick="logout()">로그아웃</button>
+            </div>
+        </div>
+
+        <div class="post-form-section" id="post_write_section">
+            <h2>📝 새 글 쓰기 (로그인 필수)</h2>
+            <input type="text" id="post_title" placeholder="제목을 입력하세요">
+            <textarea id="post_content" placeholder="내용을 입력하세요" rows="4"></textarea>
+            <button onclick="createPost()">글 작성</button>
+            <div id="post_status" class="status"></div>
+        </div>
+        
+        <hr style="margin: 25px 0;">
+
+        <h2>📰 블로그 게시글 목록 (공개)</h2>
+        <div id="posts_list_status" class="status">글을 불러오는 중...</div>
+        <ul id="posts_list" class="post-list">
+            </ul>
+        
+        <div id="login_modal" style="display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 100;">
+            <div style="background: white; width: 350px; margin: 100px auto; padding: 20px; border-radius: 5px;">
+                <h3>로그인 / 내 정보 확인</h3>
+                <div id="login_form">
+                    <input type="text" id="login_username" placeholder="사용자 이름 (예: admin)" value="admin">
+                    <input type="password" id="login_password" placeholder="비밀번호" value="dbs0505123">
+                    <button onclick="login()">로그인</button>
+                </div>
+                <div id="me_info" style="margin-top: 15px;">
+                    <button onclick="getMe()">내 정보 보기 (JWT 테스트)</button>
+                    <div id="me_status" class="status"></div>
+                </div>
+                <hr>
+                <button onclick="hideLoginModal()">닫기</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000';
+        const postWriteSection = document.getElementById('post_write_section');
+
+        // --- 토큰 및 UI 관리 ---
+        function saveToken(token) {
+            localStorage.setItem('access_token', token);
+            updateAuthUI(true);
+        }
+
+        function getToken() {
+            return localStorage.getItem('access_token');
+        }
+
+        function updateAuthUI(isLoggedIn) {
+            const statusText = document.getElementById('auth_status_display');
+            if (isLoggedIn) {
+                statusText.textContent = '로그인됨 (토큰 유효)';
+                postWriteSection.classList.add('logged-in');
+            } else {
+                statusText.textContent = '로그인하세요.';
+                postWriteSection.classList.remove('logged-in');
+            }
+        }
+        
+        function logout() {
+            localStorage.removeItem('access_token');
+            updateAuthUI(false);
+            alert('로그아웃되었습니다. 글쓰기 기능이 비활성화됩니다.');
+        }
+
+        // --- 모달 (팝업) 관리 ---
+        function showLoginModal() {
+            document.getElementById('login_modal').style.display = 'block';
+            document.getElementById('login_status').textContent = '로그인 상태:'; // 상태 초기화
+            document.getElementById('me_status').textContent = '응답:'; // 응답 초기화
+        }
+
+        function hideLoginModal() {
+            document.getElementById('login_modal').style.display = 'none';
+        }
+
+        // --- 1. 로그인 함수 (POST /token) ---
+        async function login() {
+            const username = document.getElementById('login_username').value;
+            const password = document.getElementById('login_password').value;
+            const statusDiv = document.getElementById('login_status');
+
+            const formData = new URLSearchParams();
+            formData.append('username', username);
+            formData.append('password', password);
+            formData.append('grant_type', 'password');
+
+            try {
+                const response = await fetch(`${API_URL}/token`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData.toString()
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    saveToken(data.access_token);
+                    statusDiv.textContent = '✅ 로그인 성공! 토큰이 저장되었습니다.';
+                    // 성공 후 모달 닫기
+                    setTimeout(hideLoginModal, 1000); 
+                } else {
+                    statusDiv.textContent = `❌ 실패! ${data.detail || response.statusText}`;
+                }
+            } catch (error) {
+                statusDiv.textContent = `⚠️ 연결 오류: ${error.message}`;
+            }
+        }
+
+        // --- 2. 내 정보 확인 함수 (GET /users/me/ - JWT 인증 시연) ---
+        async function getMe() {
+            const token = getToken();
+            const statusDiv = document.getElementById('me_status');
+            
+            if (!token) {
+                statusDiv.textContent = '❌ 실패! 토큰이 없습니다.';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/users/me/`, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusDiv.textContent = `✅ 성공 (200 OK): 사용자 ID ${data.id}, 이름: ${data.username}`;
+                } else {
+                    statusDiv.textContent = `❌ 실패 (401/404): ${data.detail || response.statusText}`;
+                    if (response.status === 401) logout();
+                }
+            } catch (error) {
+                statusDiv.textContent = `⚠️ 연결 오류: ${error.message}`;
+            }
+        }
+        
+        // --- 3. 게시글 생성 함수 (POST /posts/ - 인증 필요) ---
+        async function createPost() {
+            const token = getToken();
+            const statusDiv = document.getElementById('post_status');
+            
+            if (!token) {
+                statusDiv.textContent = '❌ 실패! 글 작성을 위해 로그인하세요.';
+                return;
+            }
+
+            const postData = {
+                title: document.getElementById('post_title').value,
+                content: document.getElementById('post_content').value
+            };
+            
+            if (!postData.title || !postData.content) {
+                statusDiv.textContent = '제목과 내용을 모두 입력하세요.';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/posts/`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(postData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusDiv.textContent = `✅ 글 생성 성공! ID: ${data.id}, 소유자 ID: ${data.owner_id}`;
+                    fetchPosts(); // 목록 새로고침
+                    document.getElementById('post_title').value = '';
+                    document.getElementById('post_content').value = '';
+                } else {
+                    statusDiv.textContent = `❌ 실패: ${data.detail || response.statusText}`;
+                }
+            } catch (error) {
+                statusDiv.textContent = `⚠️ 연결 오류: ${error.message}`;
+            }
+        }
+        
+        // --- 4. 게시글 목록 조회 함수 (GET /posts/ - 공개) ---
+        async function fetchPosts() {
+            const listDiv = document.getElementById('posts_list');
+            const statusDiv = document.getElementById('posts_list_status');
+            listDiv.innerHTML = '';
+            statusDiv.textContent = '글을 불러오는 중...';
+
+            try {
+                const response = await fetch(`${API_URL}/posts/`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusDiv.textContent = `✅ 총 ${data.length}개의 게시글이 로드되었습니다.`;
+                    
+                    data.reverse().forEach(post => { // 최신 글이 위로 오도록 뒤집기
+                        const li = document.createElement('li');
+                        li.className = 'post-item';
+                        li.innerHTML = `
+                            <div class="post-title">${post.title} (ID: ${post.id})</div>
+                            <div class="post-meta">작성자 ID: ${post.owner_id}</div>
+                            <p>${post.content}</p>
+                        `;
+                        listDiv.appendChild(li);
+                    });
+                } else {
+                    statusDiv.textContent = `❌ 게시글 로드 실패: ${data.detail || response.statusText}`;
+                }
+            } catch (error) {
+                statusDiv.textContent = `⚠️ 연결 오류: ${error.message}`;
+            }
+        }
+
+        // 페이지 로드시 초기 설정
+        document.addEventListener('DOMContentLoaded', () => {
+            if (getToken()) {
+                updateAuthUI(true);
+            } else {
+                updateAuthUI(false);
+            }
+            fetchPosts(); // 페이지 로드 시 게시글 목록 바로 가져오기
+        });
+    </script>
+</body>
+</html>
