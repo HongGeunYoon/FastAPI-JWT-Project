@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import api from '../api';
+import CommentList from './CommentList';
 
-function PostList() {
+function PostList({ refreshKey }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -11,7 +12,7 @@ function PostList() {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        // 🚨 GET /posts/ 엔드포인트 호출 (인증 불필요)
+        // 🚨 GET /posts/ 엔드포인트 호출 (인증 불필요.)
         const response = await api.get('/posts/');
         
         // 데이터가 성공적으로 로드되면 상태 업데이트
@@ -25,7 +26,7 @@ function PostList() {
     };
 
     fetchPosts();
-  }, []);
+  }, [refreshKey]);
 
   if (loading) return <p>게시글을 불러오는 중...</p>;
   if (error) return <p style={{ color: 'red' }}>{error}</p>;
@@ -45,6 +46,7 @@ function PostList() {
               <h4>{post.title}</h4>
               <p>{post.content}</p>
               <small>작성자 ID: {post.owner_id}</small>
+              <CommentList postId={post.id} refreshKey={refreshKey} />
             </li>
           ))}
         </ul>
