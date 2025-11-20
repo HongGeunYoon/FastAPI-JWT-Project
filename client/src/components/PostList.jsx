@@ -1,13 +1,22 @@
 ﻿// src/components/PostList.jsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useCallback} from 'react';
 import api from '../api';
 import CommentList from './CommentList';
+import CommentForm from './CommentForm';
 
 function PostList({ refreshKey }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // 🚨 2. 댓글 목록 새로고침을 위한 상태 (refreshKey가 변경되면 CommentList가 재로드됨)
+  const [commentRefreshKey, setCommentRefreshKey] = useState(0);
+
+  // 🚨 3. 댓글 작성 성공 시 호출될 콜백 함수
+  const handleCommentCreated = useCallback(() => {
+    setCommentRefreshKey(prevKey => prevKey + 1);
+  }, []);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -46,7 +55,11 @@ function PostList({ refreshKey }) {
               <h4>{post.title}</h4>
               <p>{post.content}</p>
               <small>작성자 ID: {post.owner_id}</small>
-              <CommentList postId={post.id} refreshKey={refreshKey} />
+              <CommentList postId={post.id} refreshKey={commentRefreshKey} />
+              <CommentForm
+                postId={post.id}
+                onCommentCreated={handleCommentCreated}
+              />
             </li>
           ))}
         </ul>
