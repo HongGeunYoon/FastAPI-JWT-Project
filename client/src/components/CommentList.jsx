@@ -1,12 +1,9 @@
-<<<<<<< HEAD
-﻿
-=======
-﻿// src/components/CommentList.jsx
+// client/src/components/CommentList.jsx 파일에 아래 내용을 모두 덮어쓰고 저장합니다.
 
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 
-function CommentList({ postId, refreshKey }) { // postId와 새로고침 key를 받습니다.
+function CommentList({ postId, refreshKey }) { 
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -14,7 +11,6 @@ function CommentList({ postId, refreshKey }) { // postId와 새로고침 key를 
     const fetchComments = async () => {
       setLoading(true);
       try {
-        // 🚨 GET /posts/{post_id}/comments/ 엔드포인트 호출
         const response = await api.get(`/posts/${postId}/comments/`);
         setComments(response.data);
       } catch (err) {
@@ -24,9 +20,8 @@ function CommentList({ postId, refreshKey }) { // postId와 새로고침 key를 
         setLoading(false);
       }
     };
-
     fetchComments();
-  }, [postId, refreshKey]); // postId 또는 refreshKey가 변경되면 재실행.
+  }, [postId, refreshKey]); 
 
   if (loading) return <p style={{ fontSize: '0.8em', margin: '5px 0' }}>댓글 로드 중...</p>;
 
@@ -50,4 +45,3 @@ function CommentList({ postId, refreshKey }) { // postId와 새로고침 key를 
 }
 
 export default CommentList;
->>>>>>> feature/comment-all
