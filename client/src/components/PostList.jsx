@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import api from '../api';
+import CommentList from './CommentList';
 
-function PostList() {
+function PostList({ refreshKey }) {
   const [posts, setPosts] = useState([]);
   const [likedPosts, setLikedPosts] = useState([]); // 내가 좋아요한 게시글 목록 저장
   const [loading, setLoading] = useState(true);
@@ -24,7 +25,7 @@ function PostList() {
 
   useEffect(() => {
     fetchPosts();
-  }, []);
+  }, [refreshKey]);
 
   // ❤️ 좋아요 기능
   const handleLike = async (postId) => {
