@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-﻿
-=======
 ﻿// src/components/CommentList.jsx
 
 import React, { useState, useEffect } from 'react';
@@ -50,4 +47,4 @@ function CommentList({ postId, refreshKey }) { // postId와 새로고침 key를 
 }
 
 export default CommentList;
->>>>>>> feature/comment-all
+
