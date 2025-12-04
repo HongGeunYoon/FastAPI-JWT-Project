@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 # 1. 💡 드라이버 변경: mysqlclient 설치에 맞춰 URL을 'mysql+mysqldb'로 변경했습니다.
 # 형식: "mysql+mysqldb://<사용자_이름>:<비밀번호>@<호스트_주소>/<데이터베이스_이름>"
 # 🚨 'root:password' 부분을 사용자의 실제 비밀번호로 반드시 변경해야 합니다!
-SQLALCHEMY_DATABASE_URL = "mysql+mysqldb://root:dbs1242!@localhost/fastapidb"
+SQLALCHEMY_DATABASE_URL = "mysql+mysqldb://admin:12345678@team-project-db.ctok2k62643b.ap-southeast-2.rds.amazonaws.com:3306/fastapidb"
 
 # MySQL 엔진 생성
 # 2. 🚨 문법 오류 수정: 함수 안에 대입문(등호 '=')을 넣지 않고, 정의된 변수만 전달합니다.
