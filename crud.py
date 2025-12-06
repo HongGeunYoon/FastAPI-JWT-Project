@@ -109,7 +109,7 @@ def get_comments_by_post(db: Session, post_id: int):
             "id": c.id,
             "content": c.content,
             "post_id": c.post_id,
-            "owner_id": c.owner_id,
+            "owner_id": c.user_id,
             "like_count": like_count,
             "dislike_count": dislike_count,
         })
@@ -288,7 +288,7 @@ def get_comments_by_user(db: Session, user_id: int):
     comments = (
         db.query(models.Comment, models.Post)
         .join(models.Post, models.Comment.post_id == models.Post.id)
-        .filter(models.Comment.owner_id == user_id)
+        .filter(models.Comment.user_id == user_id)
         .all()
     )
 

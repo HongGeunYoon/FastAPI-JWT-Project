@@ -49,7 +49,7 @@ class Comment(Base):
     content = Column(Text)
 
     post_id = Column(Integer, ForeignKey("posts.id"))
-    owner_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
 
     post = relationship("Post", back_populates="comments")
     owner = relationship("User", back_populates="comments")
