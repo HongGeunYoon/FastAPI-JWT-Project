@@ -54,6 +54,25 @@ class Comment(Base):
     post = relationship("Post", back_populates="comments")
     owner = relationship("User", back_populates="comments")
 
+    # ⭐ 추가: 댓글 추천/비추천 연결
+    likes = relationship("CommentLike", back_populates="comment", cascade="all, delete-orphan")
+
+
+class CommentLike(Base):
+    __tablename__ = "comment_likes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    comment_id = Column(Integer, ForeignKey("comments.id"))
+    is_like = Column(Boolean, default=True)  # True = 추천, False = 비추천
+
+    user = relationship("User")
+    comment = relationship("Comment", back_populates="likes")
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "comment_id", name="_user_comment_like_uc"),
+    )
+
 
 # -------------------
 # 👍 Like 테이블
