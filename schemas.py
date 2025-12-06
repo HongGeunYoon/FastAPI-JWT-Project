@@ -53,6 +53,8 @@ class Post(BaseModel):
     title: str
     content: str
     owner_id: int
+    like_count: int
+    liked: bool   # ⭐ 추가
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -71,8 +73,16 @@ class Comment(CommentBase):
     post_id: int
     owner_id: int
 
+    like_count: int
+    dislike_count: int
+
     class Config:
         from_attributes = True
+
+class CommentVoteResponse(BaseModel):
+    comment_id: int
+    like_count: int
+    dislike_count: int
 
 
 # ---------------------
@@ -81,6 +91,7 @@ class Comment(CommentBase):
 class PostLikeResponse(BaseModel):
     post_id: int
     liked: bool
+    like_count: int
 
 
 # ---------------------
@@ -89,3 +100,12 @@ class PostLikeResponse(BaseModel):
 class PostFavoriteResponse(BaseModel):
     post_id: int
     favorited: bool
+
+class UserComment(BaseModel):
+    id: int
+    content: str
+    post_id: int
+    post_title: str
+
+    class Config:
+        from_attributes = True
